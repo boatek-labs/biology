@@ -41,3 +41,10 @@
 @media(max-width:900px){.transition-card{width:260px;height:190px;padding:20px}.transition-card-title{font-size:21px}}
 @media(max-width:600px){.cinematic-scene{right:-35px!important;top:170px!important;width:190px!important;height:190px!important;opacity:.85!important}.transition-card{width:245px;height:180px}.transition-card-title{font-size:19px}.scene-hint{bottom:-18px;font-size:8px}}
 @media(prefers-reduced-motion:reduce){.transition-card{clip-path:none;opacity:1;transform:none}.transition-card-title,.transition-card-sub{opacity:1;transform:none}}
+
+/* Actual WebGL cell morph layer */
+.cinematic-scene{isolation:isolate}
+.cell-morph-canvas{position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none}
+.cinematic-scene .cell{opacity:0!important;visibility:hidden!important}
+.transition-card{z-index:5}
+@media(max-width:600px){.cell-morph-canvas{opacity:1}}
