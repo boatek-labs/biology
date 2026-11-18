@@ -35,24 +35,31 @@ if('IntersectionObserver' in window){const revealObserver=new IntersectionObserv
 const heroVisual=document.querySelector('.hero-art');let rafPending=false;window.addEventListener('scroll',()=>{if(rafPending)return;rafPending=true;requestAnimationFrame(()=>{rafPending=false;if(!heroVisual||matchMedia('(prefers-reduced-motion: reduce)').matches)return;const rect=heroVisual.getBoundingClientRect();const progress=Math.max(-1,Math.min(1,(window.innerHeight/2-rect.top)/window.innerHeight));heroVisual.style.setProperty('--scroll-depth',progress);heroVisual.style.transform='translate3d(0,'+(progress*42)+'px,0) rotateX('+(progress*-7)+'deg) rotateY('+(progress*8)+'deg)'})},{passive:true});
 document.querySelectorAll('.topic-card').forEach(card=>{card.addEventListener('pointermove',e=>{if(matchMedia('(prefers-reduced-motion: reduce)').matches||e.pointerType==='touch')return;const r=card.getBoundingClientRect(),x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;card.style.transform='perspective(900px) rotateX('+(-y*5)+'deg) rotateY('+(x*5)+'deg) translateY(-3px)' });card.addEventListener('pointerleave',()=>card.style.transform='')});
 
-// Cinematic cell-to-lesson motion: progressive enhancement with GSAP ScrollTrigger.
-(function cinematicCellTransition(){
- const scene=document.querySelector('.cinematic-scene'),cell=scene?.querySelector('.cell'),card=scene?.querySelector('.transition-card');
- if(!scene||!cell||!card||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
- const load=(src)=>new Promise(resolve=>{const s=document.createElement('script');s.src=src;s.onload=resolve;s.onerror=resolve;document.head.appendChild(s)});
- Promise.all([load('https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js'),load('https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js')]).then(()=>{
-  if(!window.gsap||!window.ScrollTrigger)return;
-  gsap.registerPlugin(ScrollTrigger);
-  gsap.timeline({scrollTrigger:{trigger:scene,start:'top top',end:'+=1200',scrub:1.1,pin:true,anticipatePin:1}})
-   .to(cell,{scale:1.65,rotation:145,x:-90,y:-40,ease:'none'},0)
-   .to(scene.querySelector('.orbit.o1'),{scale:1.5,rotation:180,opacity:.2,ease:'none'},0)
-   .to(scene.querySelector('.orbit.o2'),{scale:.5,rotation:-220,opacity:0,ease:'none'},0)
-   .to(scene.querySelector('.scene-glow'),{scale:2.2,opacity:.9,ease:'none'},.15)
-   .to(cell,{scale:.65,x:0,y:0,rotation:320,opacity:.35,ease:'power2.in'},.48)
-   .to(card,{clipPath:'inset(0% 0% 0% 0% round 18px)',scale:1,opacity:1,ease:'power2.out'},.38)
-   .to(scene.querySelector('.transition-card-title'),{y:0,opacity:1,ease:'power2.out'},.58)
-   .to(scene.querySelector('.transition-card-sub'),{y:0,opacity:1,ease:'power2.out'},.68)
-   .to(scene.querySelector('.transition-card-line'),{scaleX:1,ease:'power2.out'},.78)
-   .to(scene.querySelector('.scene-hint'),{opacity:0},0);
- });
+// Cinematic cell-to-lesson transformation: a shader-morphed 3D cell becomes a lesson card.
+(async function cinematicCellTransition(){
+ const sceneEl=document.querySelector('.cinematic-scene'),cellEl=sceneEl?.querySelector('.cell'),card=sceneEl?.querySelector('.transition-card');
+ if(!sceneEl||!cellEl||!card||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+ const loadScript=src=>new Promise(resolve=>{const s=document.createElement('script');s.src=src;s.onload=()=>resolve(true);s.onerror=()=>resolve(false);document.head.appendChild(s)});
+ const [gsapLoaded,scrollLoaded]=await Promise.all([loadScript('https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js'),loadScript('https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js')]);
+ if(!gsapLoaded||!scrollLoaded||!window.gsap||!window.ScrollTrigger)return;
+ let THREE;try{THREE=await import('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js')}catch{return}
+ const canvas=document.createElement('canvas');canvas.className='cell-morph-canvas';sceneEl.appendChild(canvas);
+ const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(sceneEl.clientWidth,sceneEl.clientHeight,false);renderer.setClearColor(0x000000,0);
+ const world=new THREE.Scene(),camera=new THREE.PerspectiveCamera(34,1,.1,30);camera.position.set(0,0,5.2);
+ const uniforms={uMorph:{value:0},uFlatten:{value:0},uOpacity:{value:1}};
+ const material=new THREE.ShaderMaterial({transparent:true,depthWrite:false,uniforms,vertexShader:'varying vec3 vPos; varying vec3 vNormal; uniform float uMorph; uniform float uFlatten; void main(){vec3 p=position; vec3 d=normalize(p); vec3 cube=d/(max(max(abs(d.x),abs(d.y)),abs(d.z))); cube*=0.92; vec3 rounded=normalize(p)*0.92+cube*0.08; vec3 q=mix(p*0.92,rounded,uMorph); q.z*=mix(1.0,0.13,uFlatten); vPos=q; vNormal=normalize(normalMatrix*normal); gl_Position=projectionMatrix*modelViewMatrix*vec4(q,1.0);}',fragmentShader:'varying vec3 vPos; varying vec3 vNormal; uniform float uMorph; uniform float uOpacity; void main(){vec3 n=normalize(vNormal); vec3 light=normalize(vec3(-0.45,0.65,0.8)); float diffuse=max(dot(n,light),0.0); float rim=pow(1.0-max(dot(n,vec3(0.0,0.0,1.0)),0.0),2.0); vec3 base=mix(vec3(0.77,0.77,0.72),vec3(0.36,0.37,0.34),uMorph); vec3 col=base*(0.48+diffuse*0.55)+vec3(0.8)*rim*0.24; gl_FragColor=vec4(col,uOpacity*(0.94-rim*0.15));}'});
+ const mesh=new THREE.Mesh(new THREE.SphereGeometry(1,72,56),material);world.add(mesh);
+ const resize=()=>{const w=sceneEl.clientWidth,h=sceneEl.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()};resize();window.addEventListener('resize',resize);
+ renderer.setAnimationLoop(()=>renderer.render(world,camera));
+ window.gsap.registerPlugin(window.ScrollTrigger);
+ const tl=window.gsap.timeline({scrollTrigger:{trigger:sceneEl,start:'top top',end:'+=1050',scrub:1,pin:true,anticipatePin:1}});
+ tl.to(uniforms.uMorph,{value:1,duration:.45,ease:'none'},0)
+   .to(uniforms.uFlatten,{value:1,duration:.25,ease:'none'},.32)
+   .to(mesh.scale,{x:1.18,y:.86,z:1,duration:.28,ease:'none'},.42)
+   .to(uniforms.uOpacity,{value:0,duration:.2,ease:'none'},.62)
+   .to(card,{opacity:1,scale:1,clipPath:'inset(0% 0% 0% 0% round 18px)',duration:.24,ease:'power2.out'},.58)
+   .to(sceneEl.querySelector('.transition-card-title'),{y:0,opacity:1,duration:.18,ease:'power2.out'},.73)
+   .to(sceneEl.querySelector('.transition-card-sub'),{y:0,opacity:1,duration:.16,ease:'power2.out'},.82)
+   .to(sceneEl.querySelector('.transition-card-line'),{scaleX:1,duration:.14,ease:'power2.out'},.9)
+   .to(sceneEl.querySelectorAll('.orbit,.scene-glow,.art-label,.scene-hint'),{opacity:0,duration:.18,ease:'none'},.35);
 })();
