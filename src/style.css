@@ -26,3 +26,18 @@
  @keyframes scrollReveal{from{opacity:0;transform:translateY(35px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
 }
 @media(prefers-reduced-motion:reduce){.scroll-reveal{opacity:1;transform:none;transition:none;animation:none!important}.hero-art{transform:none!important;transition:none}.topic-card{transition:none}}
+
+/* Cinematic scroll transformation: cell folds into the lesson card */
+.cinematic-scene{overflow:visible!important;background:radial-gradient(circle at 50% 48%,#eeede7 0%,#d8d7ce 58%,#c9c8bf 100%);transform-style:preserve-3d}
+.scene-glow{position:absolute;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,#fff9 0%,#c7c5ba30 45%,transparent 72%);filter:blur(4px);opacity:.2;transform:scale(.7);pointer-events:none}
+.cinematic-scene .cell{z-index:2;transform:translateZ(65px);will-change:transform}
+.cinematic-scene .orbit{will-change:transform,opacity}
+.transition-card{position:absolute;z-index:4;width:min(330px,90%);height:230px;padding:27px 24px;background:linear-gradient(145deg,#292a28,#3b3c38);color:#f4f3ee;border:1px solid #ffffff24;border-radius:18px;box-shadow:0 30px 90px #2225;clip-path:inset(50% 50% 50% 50% round 18px);opacity:0;transform:scale(.72);display:flex;flex-direction:column;justify-content:center;pointer-events:none}
+.transition-card-kicker{font-size:9px;letter-spacing:2px;color:#c4c3b9;margin-bottom:13px}
+.transition-card-title{font-size:26px;line-height:1.08;letter-spacing:-.8px;font-weight:700;transform:translateY(16px);opacity:0}
+.transition-card-sub{font-size:11px;color:#c9c9c1;margin-top:11px;transform:translateY(12px);opacity:0}
+.transition-card-line{height:1px;background:linear-gradient(90deg,#d4d2c7,transparent);transform:scaleX(0);transform-origin:left;margin-top:20px}
+.scene-hint{position:absolute;bottom:-24px;font-size:9px;letter-spacing:1.6px;color:#68695f;white-space:nowrap}
+@media(max-width:900px){.transition-card{width:260px;height:190px;padding:20px}.transition-card-title{font-size:21px}}
+@media(max-width:600px){.cinematic-scene{right:-35px!important;top:170px!important;width:190px!important;height:190px!important;opacity:.85!important}.transition-card{width:245px;height:180px}.transition-card-title{font-size:19px}.scene-hint{bottom:-18px;font-size:8px}}
+@media(prefers-reduced-motion:reduce){.transition-card{clip-path:none;opacity:1;transform:none}.transition-card-title,.transition-card-sub{opacity:1;transform:none}}
